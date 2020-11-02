@@ -91,7 +91,8 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
             $newPost = new NewsPost(
                 self::class,
                 $node->filter('title')->text(),
-                'description',
+//                'description',
+                self::prepareDescription($node->filter('description')->text()),
                 self::stringToDateTime($node->filter('pubDate')->text()),
                 $node->filter('link')->text(),
                 $enclosure
@@ -217,6 +218,8 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
             case 'span':
             case 'figure':
             case 'strong':
+            case 'i':
+                self::parseParagraph($node, $newPost, $descriptionSentences);
                 $nodes = $node->children();
                 if ($nodes->count()) {
                     $nodes->each(function ($node) use ($newPost, $maxDepth, &$stopParsing) {
@@ -225,7 +228,7 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
                 }
                 break;
             case 'p':
-                self::parseParagraph($node, $newPost, $descriptionSentences);
+//                self::parseParagraph($node, $newPost, $descriptionSentences);
                 if ($nodes = $node->children()) {
                     $nodes->each(function ($node) use ($newPost, $maxDepth, &$stopParsing) {
                         self::parseNode($node, $newPost, $maxDepth, $stopParsing);
@@ -280,9 +283,9 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
     {
         $href = $node->attr('href');
 
-        if (strpos($href, self::MAIN_PAGE_URI) === false) {
-            $href = self::MAIN_PAGE_URI . $href;
-        }
+//        if (strpos($href, self::MAIN_PAGE_URI) === false) {
+//            $href = self::MAIN_PAGE_URI . $href;
+//        }
 
         if (filter_var($href, FILTER_VALIDATE_URL)
             && !stristr($node->attr('class'), 'link-more')
