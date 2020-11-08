@@ -91,8 +91,7 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
             $newPost = new NewsPost(
                 self::class,
                 $node->filter('title')->text(),
-//                'description',
-                self::prepareDescription($node->filter('description')->text()),
+                'description',
                 self::stringToDateTime($node->filter('pubDate')->text()),
                 $node->filter('link')->text(),
                 $enclosure
@@ -219,12 +218,10 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
             case 'figure':
             case 'strong':
             case 'i':
-                self::parseParagraph($node, $newPost, $descriptionSentences);
-                $nodes = $node->children();
-                if ($nodes->count()) {
-                    $nodes->each(function ($node) use ($newPost, $maxDepth, &$stopParsing) {
-                        self::parseNode($node, $newPost, $maxDepth, $stopParsing);
-                    });
+                if (strpos($node->html(), '<p>') === false) {
+                    self::parseParagraph($node, $newPost, $descriptionSentences);
+                } else {
+                    self::parseParagraph2($node, $newPost, $descriptionSentences);
                 }
                 break;
             case 'p':
@@ -283,10 +280,6 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
     {
         $href = $node->attr('href');
 
-//        if (strpos($href, self::MAIN_PAGE_URI) === false) {
-//            $href = self::MAIN_PAGE_URI . $href;
-//        }
-
         if (filter_var($href, FILTER_VALIDATE_URL)
             && !stristr($node->attr('class'), 'link-more')
             && strpos($href, '.jpg') === false) {
@@ -313,39 +306,69 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
     {
         $nodeSentences = array_map(function ($item) {
             return !empty($item) ? trim($item, "  \t\n\r\0\x0B") : false;
-        }, explode('. ', Helper::prepareString($node->text())));
+        }, explode('<br>', $node->html()));
+
+        foreach ($nodeSentences as $k => $nodeSentence) {
+            if (empty(Helper::prepareString($nodeSentence))) {
+                unset($nodeSentences[$k]);
+            }
+        }
+        $nodeSentences = array_values($nodeSentences);
 
         if ($newPost->description == 'description' || $newPost->description == '') {
-            if (!empty($nodeSentences)) {
-                $newPost->description = self::prepareDescription(implode('. ', $nodeSentences));
+            if (!empty($nodeSentences[0])) {
+                $newPost->description = Helper::prepareString($nodeSentences[0]);
+                unset($nodeSentences[0]);
             }
-
-            return;
         }
 
-        $intersect = array_intersect($nodeSentences, $descriptionSentences);
-
-        /**
-         * Если в тексте есть хоть одно уникальное предложение ( по сравнению с описанием новости )
-         */
-        if (!empty($node->text()) && count($intersect) < count($nodeSentences)) {
-            /**
-             * Дополнительно проверяем, что оставшийся текст не является подстрокой описания
-             */
-            $text = implode('. ', array_diff($nodeSentences, $intersect));
-            if (empty($text) || stristr($newPost->description, $text)) {
-                return;
-            }
-
-            $type = NewsPostItem::TYPE_TEXT;
-            if ($node->nodeName() == self::QUOTE_TAG) {
-                $type = NewsPostItem::TYPE_QUOTE;
+        foreach ($nodeSentences as $nodeSentence) {
+            if (strpos($nodeSentence, '<script>') !== false) {
+                continue;
             }
 
             $newPost->addItem(
                 new NewsPostItem(
-                    $type,
-                    $text,
+                    NewsPostItem::TYPE_TEXT,
+                    $nodeSentence,
+                    null,
+                    null,
+                    null,
+                    null
+                )
+            );
+        }
+    }
+
+    private static function parseParagraph2(Crawler $node, NewsPost $newPost, array $descriptionSentences): void
+    {
+        $nodeSentences = array_map(function ($item) {
+            return !empty($item) ? trim($item, "  \t\n\r\0\x0B") : false;
+        }, explode('<p>', $node->html()));
+
+        foreach ($nodeSentences as $k => $nodeSentence) {
+            if (empty(Helper::prepareString($nodeSentence))) {
+                unset($nodeSentences[$k]);
+            }
+        }
+        $nodeSentences = array_values($nodeSentences);
+
+        if ($newPost->description == 'description' || $newPost->description == '') {
+            if (!empty($nodeSentences)) {
+                $newPost->description = Helper::prepareString($nodeSentences[0]);
+                unset($nodeSentences[0]);
+            }
+        }
+
+        foreach ($nodeSentences as $nodeSentence) {
+            if (strpos($nodeSentence, '<script>') !== false) {
+                continue;
+            }
+
+            $newPost->addItem(
+                new NewsPostItem(
+                    NewsPostItem::TYPE_TEXT,
+                    $nodeSentence,
                     null,
                     null,
                     null,
