@@ -220,17 +220,27 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
             case 'i':
                 if (strpos($node->html(), '<p>') === false) {
                     self::parseParagraph($node, $newPost, $descriptionSentences);
+                    if ($nodes = $node->children()) {
+                        $nodes->each(function ($node) use ($newPost, $maxDepth, &$stopParsing) {
+                            self::parseNode($node, $newPost, $maxDepth, $stopParsing);
+                        });
+                    }
                 } else {
                     self::parseParagraph2($node, $newPost, $descriptionSentences);
+                    if ($nodes = $node->children()) {
+                        $nodes->each(function ($node) use ($newPost, $maxDepth, &$stopParsing) {
+                            self::parseNode($node, $newPost, $maxDepth, $stopParsing);
+                        });
+                    }
                 }
                 break;
             case 'p':
 //                self::parseParagraph($node, $newPost, $descriptionSentences);
-                if ($nodes = $node->children()) {
-                    $nodes->each(function ($node) use ($newPost, $maxDepth, &$stopParsing) {
-                        self::parseNode($node, $newPost, $maxDepth, $stopParsing);
-                    });
-                }
+//                if ($nodes = $node->children()) {
+//                    $nodes->each(function ($node) use ($newPost, $maxDepth, &$stopParsing) {
+//                        self::parseNode($node, $newPost, $maxDepth, $stopParsing);
+//                    });
+//                }
                 break;
             case self::QUOTE_TAG:
                 self::parseParagraph($node, $newPost, $descriptionSentences);
@@ -309,7 +319,12 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
         }, explode('<br>', $node->html()));
 
         foreach ($nodeSentences as $k => $nodeSentence) {
-            if (empty(Helper::prepareString($nodeSentence))) {
+            if (empty(Helper::prepareString($nodeSentence)) ||
+                (strpos($nodeSentence, '<ul>') !== false) ||
+                (strpos($nodeSentence, '<li>') !== false) ||
+                (strpos($nodeSentence, '<h3>') !== false) ||
+                (strpos($nodeSentence, 'Loading...') !== false)
+            ) {
                 unset($nodeSentences[$k]);
             }
         }
@@ -347,7 +362,12 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
         }, explode('<p>', $node->html()));
 
         foreach ($nodeSentences as $k => $nodeSentence) {
-            if (empty(Helper::prepareString($nodeSentence))) {
+            if (empty(Helper::prepareString($nodeSentence)) ||
+                (strpos($nodeSentence, '<ul>') !== false) ||
+                (strpos($nodeSentence, '<li>') !== false) ||
+                (strpos($nodeSentence, '<h3>') !== false) ||
+                (strpos($nodeSentence, 'Loading...') !== false)
+            ) {
                 unset($nodeSentences[$k]);
             }
         }
@@ -361,7 +381,7 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
         }
 
         foreach ($nodeSentences as $nodeSentence) {
-            if (strpos($nodeSentence, '<script>') !== false) {
+            if ((Helper::prepareString($nodeSentence) === false) || (strpos($nodeSentence, '<script>') !== false)) {
                 continue;
             }
 
