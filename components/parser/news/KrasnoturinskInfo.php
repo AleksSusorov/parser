@@ -253,6 +253,7 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
                 self::addVideo($videoId, $newPost);
                 break;
             case 'a':
+            case 'b':
                 self::parseLink($node, $newPost);
                 if ($nodes = $node->children()) {
                     $nodes->each(function ($node) use ($newPost, $maxDepth, &$stopParsing) {
@@ -323,6 +324,7 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
                 (strpos($nodeSentence, '<ul>') !== false) ||
                 (strpos($nodeSentence, '<li>') !== false) ||
                 (strpos($nodeSentence, '<h3>') !== false) ||
+                (strpos($nodeSentence, '<img') !== false) ||
                 (strpos($nodeSentence, 'Loading...') !== false)
             ) {
                 unset($nodeSentences[$k]);
@@ -338,7 +340,8 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
         }
 
         foreach ($nodeSentences as $nodeSentence) {
-            if (strpos($nodeSentence, '<script>') !== false) {
+            if ((preg_replace('/\s+/', '', Helper::prepareString($nodeSentence)) == false)
+                || (strpos($nodeSentence, '<script>') !== false)) {
                 continue;
             }
 
@@ -366,6 +369,7 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
                 (strpos($nodeSentence, '<ul>') !== false) ||
                 (strpos($nodeSentence, '<li>') !== false) ||
                 (strpos($nodeSentence, '<h3>') !== false) ||
+                (strpos($nodeSentence, '<img') !== false) ||
                 (strpos($nodeSentence, 'Loading...') !== false)
             ) {
                 unset($nodeSentences[$k]);
@@ -381,7 +385,8 @@ class KrasnoturinskInfo extends Aleks007smolBaseParser implements ParserInterfac
         }
 
         foreach ($nodeSentences as $nodeSentence) {
-            if ((Helper::prepareString($nodeSentence) === false) || (strpos($nodeSentence, '<script>') !== false)) {
+            if ((preg_replace('/\s+/', '', Helper::prepareString($nodeSentence)) == false)
+                || (strpos($nodeSentence, '<script>') !== false)) {
                 continue;
             }
 
